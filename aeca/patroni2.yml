@@ -4,14 +4,14 @@ name: pg2 # должно быть разным на всех нодах
 
 restapi:
     listen: 0.0.0.0:8008 # адрес той ноды, в которой находится этот файл
-    connect_address: .42:8008 # адрес той ноды, в которой находится этот файл
+    connect_address: :8008 # адрес той ноды, в которой находится этот файл
 
 # перечислите здесь все ваши ноды, в случае если вы устанавливаете etcd на них же
 etcd3:
     hosts:
-    - .43:2379
-    - .44:2379
-    - .45:2379
+    - :2379
+    - :2379
+    - :2379
 
 # this section (bootstrap) will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
 # and all other cluster members will use it as a `global configuration`
@@ -40,8 +40,8 @@ bootstrap:
     # init pg_hba.conf должен содержать адреса ВСЕХ машин, используемых в кластере
     pg_hba:
     - host replication postgres 127.0.0.1/8 md5
-    - host replication postgres .41/24 md5
-    - host replication postgres .42/24 md5
+    - host replication postgres /24 md5
+    - host replication postgres /24 md5
     - host all all 0.0.0.0/0 md5
 
     users:
@@ -54,7 +54,7 @@ bootstrap:
 
 postgresql:
     listen: 0.0.0.0:5432 # адрес той ноды, в которой находится этот файл
-    connect_address: .42:5432 # адрес той ноды, в которой находится этот файл
+    connect_address: :5432 # адрес той ноды, в которой находится этот файл
     data_dir: /data/patroni # эту директорию создаст скрипт, описанный выше и установит нужные права
     bin_dir:  /usr/pgsql-17/bin/  # директории с postgresql
     pgpass: /tmp/pgpass
