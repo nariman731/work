@@ -1,0 +1,32 @@
+- name: Disable IPv6 for ethernet connections via NetworkManager
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Get all ethernet connection names
+      shell: |
+        nmcli -t -f NAME,TYPE connection show | grep -E 'ethernet|802-3-ethernet' | cut -d: -f1
+      register: ethernet_conns
+      changed_when: false
+
+    - name: Get current ipv6.method for each connection
+      shell: nmcli -g ipv6.method connection show "{{ item }}"
+      loop: "{{ ethernet_conns.stdout_lines }}"
+      register: ipv6_status
+      changed_when: false
+
+    - name: Disable IPv6 for the connection if not already disabled
+      shell: nmcli connection modify "{{ item.item }}" ipv6.method "disabled"
+      when: item.stdout != "disabled"
+      loop: "{{ ipv6_status.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Restart connection if IPv6 was disabled
+      shell: nmcli connection down "{{ item.item }}" && nmcli connection up "{{ item.item }}"
+      when: item.stdout != "disabled"
+      loop: "{{ ipv6_status.results }}"
+      loop_control:
+        label: "{{ item.item }}"

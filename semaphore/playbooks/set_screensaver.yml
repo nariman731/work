@@ -1,0 +1,60 @@
+- name: Configure MATE screensaver settings
+  gather_facts: false
+  hosts: all
+  become: yes
+  tasks:
+    - name: Remove jpg files starting with a letter in /usr/share/backgrounds/cosmos
+      find:
+        paths: /usr/share/backgrounds/cosmos
+        patterns: '[a-zA-Z]*.jpg'
+      register: files_to_remove
+
+    - name: Delete matching files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ files_to_remove.files }}"
+      when: files_to_remove.matched > 0
+
+    - name: Copy new images to /usr/share/backgrounds/cosmos
+      copy:
+        src: /home/semaphore/playbooks/img/
+        dest: /usr/share/backgrounds/cosmos/
+        mode: '0644'
+        owner: root
+        group: root
+
+    - name: Get list of directories in /home
+      command: find /home -mindepth 1 -maxdepth 1 -type d -exec basename {} \;
+      register: home_dirs
+
+    - name: Filter and clean usernames
+      set_fact:
+        target_users: >
+          {{ home_dirs.stdout_lines | select('search', '@dgp.gazprom.ru$') 
+          | map('regex_replace', '@dgp.gazprom.ru$', '') 
+          | list }}
+
+    - name: Set screensaver mode to 'single' for each user
+      shell: |
+        sudo -Hu {{ item }} \
+        DISPLAY=$(who | grep {{ item }} | grep -oE '[^ ]+$') \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u {{ item }})/bus" \
+        gsettings set org.mate.screensaver mode 'single'
+      loop: "{{ target_users }}"
+
+    - name: Set screensaver themes to 'screensavers-cosmos-slideshow' for each user
+      shell: |
+        sudo -Hu {{ item }} \
+        DISPLAY=$(who | grep {{ item }} | grep -oE '[^ ]+$') \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u {{ item }})/bus" \
+        gsettings set org.mate.screensaver themes '["screensavers-cosmos-slideshow"]'
+      loop: "{{ target_users }}"
+
+    - name: Set idle delay to 10 minutes for each user
+      shell: |
+        sudo -Hu {{ item }} \
+        DISPLAY=$(who | grep {{ item }} | grep -oE '[^ ]+$') \
+        DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u {{ item }})/bus" \
+        gsettings set org.mate.session idle-delay 10
+      loop: "{{ target_users }}"

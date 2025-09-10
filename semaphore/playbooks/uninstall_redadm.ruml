@@ -1,0 +1,25 @@
+- name: Remove redadm and restart network via nmcli
+  hosts: 'ka{{host_name}}.dgp.gazprom.ru'
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Uninstall redadm client
+      dnf:
+        name: redadm-client
+        state: absent
+      register: redadm_removal
+
+    - name: Get all ethernet connection names
+      shell: |
+        nmcli -t -f NAME,TYPE connection show --active | grep -E 'ethernet|802-3-ethernet' | cut -d: -f1
+      register: ethernet_conns
+      changed_when: false
+      when: redadm_removal.changed
+
+    - name: Restart network
+      shell: |
+        nmcli connection down "{{ item }}" && nmcli connection up "{{ item }}"
+      loop: "{{ ethernet_conns.stdout_lines }}"
+      when: redadm_removal.changed

@@ -1,0 +1,9 @@
+- gather_facts: false
+  hosts: all
+  tasks:
+  - lineinfile:
+      dest: /etc/sudoers
+      line: "{{ item.line }}"
+    loop:
+    - { line: '%local\ admins ALL=(ALL) ALL' }
+    - { line: '%domain\ admins ALL=(ALL) ALL' }

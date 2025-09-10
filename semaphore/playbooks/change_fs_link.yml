@@ -1,0 +1,60 @@
+- name: Change fs link on user desktop
+  hosts: all
+  gather_facts: false
+  become: yes
+  tasks:
+    - name: Get list of users with '@dgp.gazprom.ru' in their names
+      command: ls /home
+      register: homedirs
+
+    - name: Set users variable
+      set_fact:
+        users: "{{ homedirs.stdout_lines | select('search', '@dgp.gazprom.ru') | list }}"
+
+    - name: Create directory for icons
+      file:
+        path: /usr/share/themes/desktop-icons
+        state: directory
+
+    - name: Copy image icons
+      copy:
+        dest: /usr/share/themes/desktop-icons/{{ item.icon }}
+        mode: '0644'
+        src: '{{ item.local_path_to_icon }}'
+      loop: "{{ shortcuts }}"
+      loop_control:
+        label: "{{ item.desktop_name }}"
+
+    - name: Create shortcut files on user desktops
+      copy:
+        content: '[Desktop Entry]
+
+        Encoding=UTF-8
+
+        Type=Application
+
+        Terminal=false
+
+        Exec={{ item.1.execute }}
+
+        Name={{ item.1.desktop_name }}
+
+        Icon=/usr/share/themes/desktop-icons/{{ item.1.icon }}
+
+        '
+        dest: "/home/{{ item.0 }}/Рабочий стол/{{ item.1.desktop_name }}.desktop"
+        owner: "{{ item.0 | regex_replace('@dgp.gazprom.ru', '') }}"
+        group: "Domain Users"
+        mode: '0755'
+      with_nested: 
+        - "{{ users }}"
+        - "{{ shortcuts }}"
+      loop_control:
+        label: "{{ item.1.desktop_name }} for {{ item.0 }}"
+
+  vars:
+    shortcuts:
+      - desktop_name: "Файловый сервер"
+        execute: caja smb://fs.dgp.gazprom.ru/UserFiles
+        icon: file-storage.png
+        local_path_to_icon: /home/semaphore/playbooks/img/file-storage.png

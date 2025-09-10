@@ -1,0 +1,24 @@
+- name: Change time sync setting
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Copy to client configuration file
+    copy:
+      dest: /etc/systemd/
+      mode: '0644'
+      src: /home/semaphore/playbooks/conf/timesyncd.conf
+    notify: Restart systemd-timesyncd
+
+  - name: Stop and disable chronyd service
+    service:
+      name: chronyd
+      state: stopped
+      enabled: false
+
+  handlers:
+  - name: Restart systemd-timesyncd
+    service:
+      name: systemd-timesyncd
+      state: restarted
+      enabled: true

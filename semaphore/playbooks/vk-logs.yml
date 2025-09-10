@@ -1,0 +1,21 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+  
+  - name: Create directory /tmp/logs
+    file:
+      path: /tmp/logs
+      state: directory
+
+  - name: Gather logs from vkmail servers
+    shell: |
+      dmesg -H | gzip > dmesg.logs.gz
+      tar -czvf messages.logs.gz /var/log/messages*
+      docker ps -a >> docker_ps-a.txt
+      docker network inspect mail-on-premise-net >> docker_mopn.txt
+      lsblk >> lsblk.txt
+      df -m >> df-m.txt
+      systemctl |grep onprem >> systemctl_onprem.txt
+      uptime >> uptime.txt
+    args:
+      chdir: /tmp/logs

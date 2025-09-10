@@ -1,0 +1,62 @@
+services:
+  postgres:
+    restart: unless-stopped
+    image: postgres
+    environment:
+      POSTGRES_USER: 
+      POSTGRES_PASSWORD: 
+      POSTGRES_DB: 
+    volumes:
+      - ./semaphore-postgres:/var/lib/postgresql/data
+    networks:
+      - semaphore_network
+
+  semaphore:
+    restart: unless-stopped
+    image: semaphoreui/semaphore
+    ports:
+      - 3000:3000
+    environment:
+      SEMAPHORE_DB_DIALECT: postgres
+      SEMAPHORE_DB_HOST: postgres
+      SEMAPHORE_DB_NAME: semaphore
+      SEMAPHORE_DB_USER: 
+      SEMAPHORE_DB_PASS: 
+      SEMAPHORE_ADMIN: 
+      SEMAPHORE_ADMIN_PASSWORD: 
+      SEMAPHORE_ADMIN_NAME: admin
+      SEMAPHORE_ADMIN_EMAIL: admin@localhost
+      SEMAPHORE_ACCESS_KEY_ENCRYPTION: 
+      ANSIBLE_HOST_KEY_CHECKING: False
+      ANSIBLE_SSH_COMMON_ARGS: "-o StrictHostKeyChecking=no -o UpdateHostKeys=yes"
+    volumes:
+      - ./playbooks:/home/semaphore/playbooks
+    depends_on:
+      - postgres
+    networks:
+      - semaphore_network
+
+  nginx:
+    restart: unless-stopped
+    image: nginx:latest
+    container_name: semaphore-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./cert.pem:/etc/nginx/cert/cert.pem:ro
+      - ./key.pem:/etc/nginx/cert/privkey.pem:ro
+      - ./nginx-logs:/var/log/nginx
+    depends_on:
+      - semaphore
+    networks:
+      - semaphore_network
+
+volumes:
+  semaphore-postgres:
+  playbooks:
+
+networks:
+  semaphore_network:
+    driver: bridge

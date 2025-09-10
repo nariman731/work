@@ -1,0 +1,18 @@
+- name: Configure rsyslog
+  hosts: all  
+  gather_facts: false
+
+  tasks:
+    - name: Copy configuration file
+      copy:
+        src: /home/semaphore/playbooks/conf/rsyslog.conf
+        dest: /etc/rsyslog.conf
+        mode: '0644'
+      notify:
+        - restart rsyslog
+
+  handlers:
+    - name: restart rsyslog
+      service:
+        name: rsyslog
+        state: restarted

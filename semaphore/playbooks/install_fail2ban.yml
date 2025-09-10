@@ -1,0 +1,50 @@
+- hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+
+  - name: Install fail2ban
+    dnf:
+      name: fail2ban
+      state: present
+
+  - name: Remove firewalld
+    dnf:
+      name: firewalld
+      state: absent
+    notify: Daemon reload 
+
+  - name: Remove firewalld directory
+    file:
+      path: /etc/firewalld/
+      state: absent
+
+  - name: Remove 00-firewalld.conf
+    file:
+      path: /etc/fail2ban/jail.d/00-firewalld.conf
+      state: absent
+    notify: Restart fail2ban
+
+  - name: Copy new files to /etc/fail2ban/jail.d
+    copy:
+      src: /home/semaphore/playbooks/conf/sshd.local
+      dest: /etc/fail2ban/jail.d/sshd.local
+      mode: '0644'
+      owner: root
+      group: root
+    notify: Restart fail2ban
+
+  - name: Enable and start fail2ban service
+    service:
+      name: fail2ban
+      state: started
+      enabled: yes
+    
+  handlers:
+    - name: Restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted
+        
+    - name: Daemon reload
+      command: systemctl daemon-reload

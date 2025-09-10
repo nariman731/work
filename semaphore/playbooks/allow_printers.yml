@@ -1,0 +1,10 @@
+- gather_facts: false
+  hosts: all
+  tasks:
+  - copy:
+      dest: /etc/polkit-1/rules.d/
+      src: "{{ item.file }}"
+      mode: '0644'
+    loop:
+    - { file: '/home/semaphore/playbooks/conf/40-allow-changing-printers.rules' }
+    - { file: '/home/semaphore/playbooks/conf/40-allow-printers.rules' }

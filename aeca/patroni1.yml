@@ -1,0 +1,89 @@
+scope: aeca # должно быть одинаковым на всех нодах
+namespace: /db/ # должно быть одинаковым на всех нодах
+name: pg1 # должно быть разным на всех нодах
+
+restapi:
+    listen: 0.0.0.0:8008 # адрес той ноды, в которой находится этот файл
+    connect_address: .41:8008 # адрес той ноды, в которой находится этот файл
+
+# перечислите здесь все ваши ноды, в случае если вы устанавливаете etcd на них же
+etcd3:
+    hosts:
+    - .43:2379
+    - .44:2379
+    - .45:2379
+
+# this section (bootstrap) will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
+# and all other cluster members will use it as a `global configuration`
+bootstrap:
+    dcs:
+        ttl: 100
+        loop_wait: 10
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        postgresql:
+            use_pg_rewind: true
+            use_slots: true
+            parameters:
+                    wal_level: replica
+                    hot_standby: "on"
+                    wal_keep_segments: 20
+                    max_wal_senders: 5
+                    max_replication_slots: 5
+                    checkpoint_timeout: 30
+                    max_connections: 1000
+
+    initdb:
+    - encoding: UTF8
+    - data-checksums
+
+    # init pg_hba.conf должен содержать адреса ВСЕХ машин, используемых в кластере
+    pg_hba:
+    - host replication postgres 127.0.0.1/8 md5
+    - host replication postgres .41/24 md5
+    - host replication postgres .42/24 md5
+    - host all all 0.0.0.0/0 md5
+
+    users:
+        admin:
+            password: 
+            options:
+                - createrole
+                - createdb
+                - superuser
+
+postgresql:
+    listen: 0.0.0.0:5432 # адрес той ноды, в которой находится этот файл
+    connect_address: .41:5432 # адрес той ноды, в которой находится этот файл
+    data_dir: /data/patroni # эту директорию создаст скрипт, описанный выше и установит нужные права
+    bin_dir:  /usr/pgsql-17/bin/  # директории с postgresql
+    pgpass: /tmp/pgpass
+    authentication:
+        replication:
+            username: 
+            password: 
+        superuser:
+            username: 
+            password: 
+    create_replica_methods:
+        basebackup:
+            checkpoint: 'fast'
+    parameters:
+        unix_socket_directories: '.'
+        log_destination: 'stderr'
+        logging_collector: on
+        log_directory: 'pg_log'
+        log_filename: 'postgresql.log'
+        log_truncate_on_rotation: on
+        log_rotation_age: 1d
+        log_rotation_size: 0
+        log_min_duration_statement: 3000
+        log_line_prefix: '%t [%p-%l] %q%u@%d '
+        log_autovacuum_min_duration: 3000
+        max_connections: 1000
+
+tags:
+    nofailover: false
+    noloadbalance: false
+    clonefrom: false
+    nosync: false

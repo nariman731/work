@@ -1,0 +1,62 @@
+- hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    rules: /home/semaphore/playbooks/conf/00-siem.rules
+    config: /home/semaphore/playbooks/conf/auditd.conf
+    rsyslogfile: /home/semaphore/playbooks/conf/10-siem.conf
+    etcrsyslogfile: /home/semaphore/playbooks/conf/rsyslog.conf
+    journald: /home/semaphore/playbooks/conf/journald.conf
+
+  tasks:
+
+    - name: Install required package
+      dnf:
+        name: audispd-plugins
+        state: present
+
+    - name: Copy configuration files
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "{{ item.mode }}"
+      with_items:
+        - { src: "{{ config }}", dest: "/etc/audit/auditd.conf", mode: "0640" }
+        - { src: "{{ rules }}", dest: "/etc/audit/rules.d/00-siem.rules", mode: "0600" }
+        - { src: "{{ rsyslogfile }}", dest: "/etc/rsyslog.d/10-siem.conf", mode: "0644" }
+        - { src: "{{ etcrsyslogfile }}", dest: "/etc/rsyslog.conf", mode: "0644" }
+        - { src: "{{ journald }}", dest: "/etc/systemd/journald.conf", mode: "0644" }
+      notify:
+        - restart auditd
+        - restart rsyslog
+        - restart systemd-journald
+
+    - name: Backup existing audit.rules if present
+      stat:
+        path: /etc/audit/rules.d/audit.rules
+      register: audit_stat
+
+    - name: Rename audit.rules to backup
+      command: mv /etc/audit/rules.d/audit.rules /etc/audit/rules.d/audit.rules.backup
+      when: audit_stat.stat.exists
+
+    - name: Load audit rules
+      command: auditctl -R /etc/audit/rules.d/00-siem.rules
+
+  handlers:
+
+    - name: restart auditd
+      service:
+        name: auditd
+        state: restarted
+
+    - name: restart rsyslog
+      service:
+        name: rsyslog
+        state: restarted
+
+    - name: restart systemd-journald
+      service:
+        name: systemd-journald
+        state: restarted

@@ -1,0 +1,6 @@
+- gather_facts: false
+  hosts: '{{site}}'
+  tasks:
+  - lineinfile:
+      dest: /etc/sudoers
+      line: '%{{site}}\ admins ALL=(ALL) ALL'

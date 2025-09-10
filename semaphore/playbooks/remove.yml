@@ -1,0 +1,8 @@
+- name: Remover
+  gather_facts: false
+  hosts: all
+  tasks:
+    - name: Remove from host
+      file:
+        path: '{{full_path}}'
+        state: absent

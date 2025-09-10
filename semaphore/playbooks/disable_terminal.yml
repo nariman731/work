@@ -1,0 +1,7 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Disable mate-terminal
+    file:
+      path: /usr/bin/mate-terminal
+      mode: '0740'

@@ -1,0 +1,13 @@
+- name: Install new root certificate
+  hosts: all
+  gather_facts: false
+  tasks:
+  - copy:
+      dest: /etc/pki/ca-trust/source/anchors/
+      mode: '0644'
+      src: '{{cert}}'
+    name: Copy to client
+  - name: Update trust cert
+    shell: update-ca-trust
+  vars:
+    cert: /opt/semaphore/playbooks/other/Root_CA_GT_Makhachkala.crt

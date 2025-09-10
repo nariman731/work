@@ -1,0 +1,24 @@
+- name: Reset password last set for computer
+  hosts: all
+  gather_facts: false
+
+  tasks:
+  - name: Copy to client krb file
+    copy:
+      dest: /tmp
+      mode: '0644'
+      src: /home/semaphore/playbooks/other/krb5cc_0
+
+  - name: Run command for reset
+    command: adcli update --login-ccache=/tmp/krb5cc_0 -v && adcli update --computer-password-lifetime=0 --add-samba-data
+    register: adcli_output
+    ignore_errors: yes
+    
+  - name: Display command output
+    debug: 
+      msg: "{{ adcli_output.stderr }}"
+
+  - name: Remove krb from host
+    file:
+      path: /tmp/krb5cc_0
+      state: absent

@@ -1,0 +1,19 @@
+- name: Update /etc/crontab with dynamic cron job and restart cron if needed
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update /etc/crontab with template
+      template:
+        src: crontab.j2
+        dest: /etc/crontab
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart crond
+
+  handlers:
+    - name: Restart crond
+      service:
+        name: crond
+        state: restarted

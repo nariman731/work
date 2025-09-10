@@ -1,0 +1,11 @@
+- name: Copy
+  gather_facts: false
+  hosts: all
+  tasks:
+    - name: Copy new files to host
+      copy:
+        src: '/home/semaphore/playbooks{{source}}'
+        dest: '{{destination}}'
+        mode: '0644'
+        owner: root
+        group: root

@@ -1,0 +1,35 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+  
+  - name: Create directory /tmp/certs
+    file:
+      path: /tmp/certs
+      state: directory
+
+  - name: Gather logs from vkmail servers
+    shell: |
+      openssl req -new -sha2 -nodes -out cert_{{site}}.csr -newkey rsa:4096 -keyout private_{{site}}.key -config <(
+      cat << EOF
+      [req]
+      default_bits = 4096
+      prompt = no
+      default_md = sha2
+      req_extensions = req_ext
+      distinguished_name = dn
+      [dn]
+      C=RU
+      ST=Dagestan
+      L=Makhachkala
+      O=Gazprom transgaz Makhachkala
+      OU=IT
+      CN={{site}}.dgp.gazprom.ru
+      [req_ext]
+      subjectAltName = @alt_names
+      [alt_names]
+      DNS.1 = {{site}}.dgp.gazprom.ru
+      IP.1 = {{ip}}
+      EOF
+      )
+    args:
+      chdir: /tmp/certs
